@@ -69,11 +69,19 @@ knowledge-base/
 git add . && git commit -m "描述" && git push
 ```
 
-**触发条件**：
-- 入库新笔记
-- 提炼笔记
-- 更新索引
-- 修改规则/脚本
+**重要操作定义**：
+- 入库新笔记（RAW_IN）
+- 重命名/移动/删除raw文件（RAW_ORG）
+- 提炼笔记到core（EXTRACT）
+- 更新索引（INDEX）
+- 编辑core文件（CORE_EDIT）
+- 修改规则文件（RULE_EDIT）
+- 新增/修改脚本（SCRIPT）
+
+**不触发推送的操作**：
+- 读取文件、查看目录
+- 仅查询索引
+- 日志记录本身
 
 **commit 格式**：`[操作类型] 简要描述`
 

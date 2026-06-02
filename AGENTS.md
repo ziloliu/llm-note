@@ -53,9 +53,28 @@ knowledge-base/
 ```
 
 ### 操作类型
-`RAW_IN` `RAW_ORG` `EXTRACT` `INDEX` `CORE_EDIT` `SCRIPT` `RULE_EDIT`
+`RAW_IN` `RAW_ORG` `EXTRACT` `INDEX` `CORE_EDIT` `SCRIPT` `RULE_EDIT` `GIT`
 
 ### 状态标记
 `OK` `FAIL` `REVIEW` `SKIP`
 
 详细规范见 `rules/log_standard.md`
+
+---
+
+## 五、自动版本控制
+
+每次完成重要操作后，AI 自动执行：
+```bash
+git add . && git commit -m "描述" && git push
+```
+
+**触发条件**：
+- 入库新笔记
+- 提炼笔记
+- 更新索引
+- 修改规则/脚本
+
+**commit 格式**：`[操作类型] 简要描述`
+
+详见 `rules/log_standard.md`

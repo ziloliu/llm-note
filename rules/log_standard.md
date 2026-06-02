@@ -23,6 +23,7 @@ HH:MM [操作类型] [状态] 目标路径
 | `CORE_EDIT` | 编辑core文件 |
 | `RULE_EDIT` | 修改rules |
 | `SCRIPT` | 运行/修改脚本 |
+| `GIT` | 版本控制提交 |
 
 ### 状态标记
 - `OK` – 成功

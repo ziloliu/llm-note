@@ -17,7 +17,7 @@
 - **效率低下**：接收时机不可预知，CPU 长时间阻塞在等待循环中
 - **不利于多任务**：无法同时处理其他外设或逻辑
 
-📄 [原文01](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
+📄 [原文01: USART1中断方式接收（寄存器）](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
 
 ### 1.2 中断方式的优势
 
@@ -25,7 +25,7 @@
 - **主循环空闲**：可处理其他任务
 - **适合实际工程**：接收时机不可预知时使用
 
-📄 [原文01](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
+📄 [原文01: USART1中断方式接收（寄存器）](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
 
 ### 1.3 轮询方式与中断方式对比
 
@@ -38,7 +38,7 @@
 | 主循环 | 阻塞在接收等待中 | **空闲**，可处理其他任务 |
 | 适用场景 | 简单调试 | 实际工程应用 |
 
-📄 [原文01](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
+📄 [原文01: USART1中断方式接收（寄存器）](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
 
 ---
 
@@ -82,7 +82,7 @@
 | 轮询方式 | 不勾选 NVIC 中的 USART1 中断（无需开启） |
 | 中断方式 | 勾选 USART1 global interrupt → Enable |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -113,7 +113,7 @@ typedef struct
 
 > `h` 代表 Handle（句柄），是 HAL 库对 USART 外设的统一封装。所有 HAL 库函数都通过此结构体操作外设。
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -159,7 +159,7 @@ HAL_UART_Transmit(&huart1, str, 14, 1000);
 HAL_UART_Transmit(&huart1, str, strlen((char *)str), 1000);
 ```
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -198,7 +198,7 @@ HAL_StatusTypeDef HAL_UART_Receive(
 | `1234567890abcd`（14 字节） | 仅接收前 10 字节 | 回显 `1234567890`，剩余留在缓冲区 |
 | 间隔 8 字节发送 | 超时后失败 | 无法正常接收 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ### 5.2 轮询方式变长接收
 
@@ -259,7 +259,7 @@ HAL_UARTEx_ReceiveToIdle
 | 发送方要求 | 必须发送恰好 Size 个字节 | 发送任意长度均可 |
 | 适用场景 | 定长协议 | **变长数据（如字符串）** |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ### 5.3 中断方式定长接收
 
@@ -296,7 +296,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 | 发送少于 10 字节 | 永远收不满 10 字节，回调不触发 |
 | 含回车换行 | 回车换行也占字节数，破坏定长匹配 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ### 5.4 中断方式变长接收（推荐）
 
@@ -357,7 +357,7 @@ HAL_UARTEx_RxEventCallback() 被调用
 回到等待状态，准备接收下一串数据
 ```
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -372,7 +372,7 @@ HAL_UARTEx_RxEventCallback() 被调用
 | DMA 定长 | `HAL_UART_Transmit_DMA()` | `HAL_UART_Receive_DMA()` | 否 | 大量数据，释放 CPU |
 | DMA 变长 | `HAL_UART_Transmit_DMA()` | `HAL_UARTEx_ReceiveToIdle_DMA()` | 否 | 大量变长数据 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -455,7 +455,7 @@ void USART1_IRQHandler(void)
 | 业务逻辑位置 | 中断服务程序中 | **主循环中** |
 | size 清零时机 | 中断中（发送前清零会导致发送失败） | **主循环中（发送完成后清零）** |
 
-📄 [原文01](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
+📄 [原文01: USART1中断方式接收（寄存器）](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
 
 ---
 
@@ -486,7 +486,7 @@ HAL_UART_IRQHandler(&huart1)                 ← HAL 库统一中断处理
 HAL_UARTEx_RxEventCallback(&huart1, size)    ← 用户重写的回调函数
 ```
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -500,7 +500,7 @@ HAL_UARTEx_RxEventCallback(&huart1, size)    ← 用户重写的回调函数
 | extern 声明 | 回调函数中访问全局变量需用 `extern` 声明 |
 | 回调函数名不能写错 | `HAL_UARTEx_RxEventCallback`（非 `HAL_UART_RxCpltCallback`） |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -527,7 +527,7 @@ HAL_UARTEx_RxEventCallback(&huart1, size)    ← 用户重写的回调函数
 | 灵活查看变量 | 可打印任意变量值、执行路径、分支判断结果 |
 | 实时观察 | 程序运行过程中持续输出信息 |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.2 printf 重定向原理
 
@@ -558,7 +558,7 @@ fputc(ch, stdout);             ← 逐字符调用，将每个字符写入标准
 - 编译链接时**优先使用用户的实现**（类似 `__weak` 机制）
 - 无需修改标准库源码
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.3 通用前置条件
 
@@ -584,7 +584,7 @@ MicroLib 是 C 标准库的精简版本，适用于嵌入式系统，包含 `std
 | Debug | Serial Wire | ST-Link 调试模式 |
 | Reset and Run | 勾选 | 烧写后自动运行 |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.4 寄存器方式实现
 
@@ -636,7 +636,7 @@ int fputc(int ch, FILE *f)
 }
 ```
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.5 HAL 库方式实现
 
@@ -666,7 +666,7 @@ int fputc(int ch, FILE *f)
 
 > HAL 库没有单独发送一个字符的函数，用 `HAL_UART_Transmit()` 发送长度为 1 的定长数据等效实现。
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.6 两种实现方式对比
 
@@ -686,7 +686,7 @@ int fputc(int ch, FILE *f)
 | 串口已初始化 | fputc 内部依赖串口发送功能 |
 | 波特率一致 | 串口助手与代码配置的波特率相同 |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ### 10.7 printf 重定向原理总结
 
@@ -702,7 +702,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 串口发送 → 电脑显示            串口发送 → 电脑显示
 ```
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ---
 
@@ -717,7 +717,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 确认执行顺序 | 在多个关键位置打印带序号的信息 |
 | 接收数据调试 | 在接收回调中 `printf("Received %d bytes\n", size)` |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ---
 
@@ -734,7 +734,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | `%c` | 单个字符 | `printf("%c", 'A')` → `A` |
 | `%%` | 百分号本身 | `printf("100%%")` → `100%` |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ---
 
@@ -750,7 +750,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 底层原理仍是 IDLE | 与寄存器方式的 IDLE 检测原理一致，HAL 库封装了底层细节 |
 | 中文编码 | 串口助手与系统的字符集需一致（如 GBK），否则中文显示乱码 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ### 13.2 中断服务程序注意事项
 
@@ -761,7 +761,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 中断服务程序要轻 | 只做接收存数据 + 设标志位，不做发送等耗时操作 |
 | 全局变量跨文件访问 | 通过 `extern` 在 main.c 中引用 usart.c 中定义的全局变量 |
 
-📄 [原文01](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
+📄 [原文01: USART1中断方式接收（寄存器）](../raw/嵌入式开发/USART串口通信/01_USART1中断方式接收（寄存器）.md)
 
 ### 13.3 printf 重定向注意事项
 
@@ -774,7 +774,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 中断中慎用大量 printf | 中断服务程序应尽量简短，大量打印可能影响实时性 |
 | 波特率需与串口助手一致 | 否则显示乱码 |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ---
 
@@ -790,7 +790,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 灵活性 | 可修改变量/寄存器值 | 仅观察，不可修改 |
 | 配置复杂度 | 无需额外配置 | 需 MicroLib + 重写 fputc |
 
-📄 [原文03](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
+📄 [原文03: printf重定向调试方法](../raw/嵌入式开发/USART串口通信/03_printf重定向调试方法.md)
 
 ---
 
@@ -808,7 +808,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | 执行效率 | 略高 | 略低（函数调用开销） |
 | 可维护性 | 依赖寄存器知识 | 函数名自解释 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -821,7 +821,7 @@ USART1_SendChar(ch)         HAL_UART_Transmit(&huart1, &ch, 1, 1000)
 | **HAL 库 + 轮询** | `HAL_UARTEx_ReceiveToIdle()` 一行调用 | 函数内部自动处理 IDLE | **最少** |
 | **HAL 库 + 中断** | `HAL_UARTEx_ReceiveToIdle_IT()` | 回调函数中处理 | 最少 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -843,7 +843,7 @@ HAL_Delay()              ← 延时
 | 文件内搜索 | 打开 `stm32f1xx_hal_uart.c`，查看函数大纲 |
 | 头文件查看 | `stm32f1xx_hal_uart.h` 中有所有函数声明 |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -860,7 +860,7 @@ HAL_UART_[Ex_]Receive[_IT|_DMA]
 └── _DMA               → DMA 方式
 ```
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -875,7 +875,7 @@ HAL_UART_[Ex_]Receive[_IT|_DMA]
 | 5 | Project Manager → 生成代码 |
 | 6 | Keil 中配置 Debug → Reset and Run |
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -889,7 +889,7 @@ HAL_UART_[Ex_]Receive[_IT|_DMA]
 - 适用于确定会收到数据的场景
 - 等效于轮询方式的无限 while 等待，但保留了 HAL 库的状态管理机制
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
 
 ---
 
@@ -909,4 +909,4 @@ Receive 内部：
 
 > Timeout 参数是 HAL 库相对于手动轮询的改进：防止因硬件故障导致无限等待卡死。
 
-📄 [原文02](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)
+📄 [原文02: HAL库USART收发完整指南](../raw/嵌入式开发/USART串口通信/02_HAL库USART收发完整指南.md)

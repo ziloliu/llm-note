@@ -30,6 +30,7 @@ knowledge-base/
 |------|------|----------|
 | 收到新笔记 | 筛查 → 命名 → 归类 → 放入raw/ → **同时提炼到core/** | `rules/raw_processing.md` |
 | 零散笔记暂存 | 放入 `raw/tmp/`（提炼时忽略） | `rules/raw_processing.md` |
+| 录入笔记 / 整理笔记 | 从 `raw/tmp/` 筛查 → 命名 → 归类 → 放入raw/ → **同时提炼到core/** | `rules/raw_processing.md` |
 | 提炼笔记 | 读raw → 提取知识 → 写入core/ | `rules/extraction_standard.md` |
 | 更新索引 | 运行 `python scripts/generate_index.py` | `rules/index_generation.md` |
 | 任何修改 | 记录日志 | `rules/log_standard.md` |

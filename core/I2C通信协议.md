@@ -14,6 +14,7 @@
 > - [x] 11_硬件I2C起始停止应答函数
 > - [x] 12_硬件I2C数据收发实现
 > - [x] 13_AT24C02硬件I2C接口层
+> - [x] 14_I2C_HAL库实现AT24C02
 >
 > **更新时间**：2026-06-07
 
@@ -2304,3 +2305,244 @@ I2C_ReceiveByte(): [等 RXNE=1] → 返回 DR/TIMEOUT
 | 可靠性 | 依赖软件 | 硬件保证 | 硬件保证 |
 
 📄 [原文13: AT24C02硬件I2C接口层](../raw/嵌入式开发/I2C通信协议/13_AT24C02硬件I2C接口层.md)
+
+---
+
+## 二十一、HAL 库实现 I²C 通信
+
+### 21.1 CubeMX 配置
+
+#### 基础配置
+
+| 配置项 | 操作 |
+|--------|------|
+| Debug | SYS → Serial Wire |
+| RCC | HSE + LSE |
+| 时钟树 | HSE → PLL ×9 → 72MHz，APB1 /2 → **36MHz** |
+| USART1 | Asynchronous（用于串口打印） |
+
+#### I²C2 配置
+
+| 配置项 | 路径 | 设置值 |
+|--------|------|--------|
+| 启用 I²C2 | Connectivity → I²C2 → Mode → **I2C** | 开启 I²C 模式 |
+| 速度模式 | Parameter Settings → Speed Mode | **Standard Mode**（100kHz） |
+| 时钟频率 | 自动生成 | 100 kHz（SCL 频率） |
+
+#### 自动配置的引脚
+
+选择 I²C 模式后，CubeMX 自动分配引脚：
+
+| 引脚 | 功能 | GPIO 配置 |
+|------|------|-----------|
+| **PB10** | I2C2_SCL | **复用开漏输出** |
+| **PB11** | I2C2_SDA | **复用开漏输出** |
+
+#### 与寄存器方式配置对比
+
+| 配置项 | 寄存器方式（手动） | HAL 库（CubeMX） |
+|--------|-------------------|------------------|
+| CR2 FREQ | 手动写 36 | 自动生成 |
+| CCR | 手动计算 180 | 根据 100kHz 自动算 |
+| TRISE | 手动计算 37 | 自动生成 |
+| CR1 ACK | 手动置位 | 自动生成 |
+| CR1 PE | 最后手动使能 | 自动生成 |
+| GPIO 模式 | 手动配复用开漏 | 自动配复用开漏 |
+
+> HAL 库自动处理了 CR2、CCR、TRISE 等底层寄存器配置。
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.2 HAL 库 I²C 写入函数
+
+#### 函数原型
+
+```c
+HAL_StatusTypeDef HAL_I2C_Mem_Write(
+    I2C_HandleTypeDef *hi2c,    // I²C 句柄指针
+    uint16_t DevAddress,        // 设备地址（含读写方向位）
+    uint16_t MemAddress,        // 存储器内部地址
+    uint16_t MemAddSize,        // 存储器地址大小（8位/16位）
+    uint8_t *pData,             // 待写入数据的指针
+    uint16_t Size,              // 写入字节数
+    uint32_t Timeout            // 超时时间（毫秒）
+);
+```
+
+#### 参数详解
+
+| 参数 | 类型 | 本实验传入值 | 说明 |
+|------|------|-------------|------|
+| hi2c | `I2C_HandleTypeDef *` | `&hi2c2` | I²C2 句柄地址 |
+| DevAddress | `uint16_t` | `W_ADDR (0xA0)` | 写地址 |
+| MemAddress | `uint16_t` | `inner_addr` | EEPROM 内部存储地址 |
+| MemAddSize | `uint16_t` | `I2C_MEMADD_SIZE_8BIT` | **8 位**地址（256 字节） |
+| pData | `uint8_t *` | `&byte` 或数据数组 | 数据指针 |
+| Size | `uint16_t` | `1` 或 `size` | 字节数 |
+| Timeout | `uint32_t` | `1000` | 超时毫秒数 |
+
+#### MemAddSize 说明
+
+| 参数 | 含义 | 适用场景 |
+|------|------|----------|
+| `I2C_MEMADD_SIZE_8BIT` | 8 位内部地址 | AT24C02（256 字节，地址 0x00~0xFF） |
+| `I2C_MEMADD_SIZE_16BIT` | 16 位内部地址 | 更大容量的 EEPROM |
+
+> 注意：使用宏定义 `I2C_MEMADD_SIZE_8BIT`，不要直接写数字 8。
+
+#### 函数封装了什么
+
+```
+HAL_I2C_Mem_Write 内部自动完成：
+  → I2C_Start()
+  → I2C_SendAddr(W_ADDR)      // 发送设备写地址
+  → I2C_SendByte(inner_addr)   // 发送内部存储地址
+  → I2C_SendByte(data)         // 发送数据（循环 Size 次）
+  → I2C_Stop()
+  → 等待 ACK（检测 ADDR/BTF 标志）
+  → 超时保护
+```
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.3 HAL 库 I²C 读取函数
+
+#### 函数原型
+
+```c
+HAL_StatusTypeDef HAL_I2C_Mem_Read(
+    I2C_HandleTypeDef *hi2c,    // I²C 句柄指针
+    uint16_t DevAddress,        // 设备地址（含读写方向位）
+    uint16_t MemAddress,        // 存储器内部地址
+    uint16_t MemAddSize,        // 存储器地址大小
+    uint8_t *pData,             // 接收缓冲区指针
+    uint16_t Size,              // 读取字节数
+    uint32_t Timeout            // 超时时间
+);
+```
+
+#### 参数详解
+
+| 参数 | 本实验传入值 | 说明 |
+|------|-------------|------|
+| DevAddress | `R_ADDR (0xA1)` | 读地址 |
+| MemAddress | `inner_addr` | 从哪个内部地址开始读 |
+| MemAddSize | `I2C_MEMADD_SIZE_8BIT` | 8 位地址 |
+| pData | `&byte` 或 `buffer` | 接收缓冲区 |
+| Size | `1` 或 `size` | 读取字节数 |
+| Timeout | `1000` | 超时毫秒数 |
+
+#### 函数封装了什么
+
+```
+HAL_I2C_Mem_Read 内部自动完成（假写真读）：
+  → I2C_Start()
+  → I2C_SendAddr(W_ADDR)       // 假写：发送写地址
+  → I2C_SendByte(inner_addr)   // 发送内部存储地址
+  → I2C_Start()                // 重复起始
+  → I2C_SendAddr(R_ADDR)       // 真读：发送读地址
+  → I2C_ReceiveByte()          // 接收数据（循环 Size 次）
+    → 前 N-1 字节自动 ACK
+    → 最后 1 字节自动 NACK + STOP
+```
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.4 接口层实现
+
+#### 写入一个字节
+
+```c
+void EEPROM_WriteByte(uint8_t inner_addr, uint8_t byte)
+{
+    HAL_I2C_Mem_Write(&hi2c2, W_ADDR, inner_addr,
+                      I2C_MEMADD_SIZE_8BIT, &byte, 1, 1000);
+    Delay_ms(5);    // 等待写入周期
+}
+```
+
+#### 读取一个字节
+
+```c
+uint8_t EEPROM_ReadByte(uint8_t inner_addr)
+{
+    uint8_t byte;
+    HAL_I2C_Mem_Read(&hi2c2, R_ADDR, inner_addr,
+                     I2C_MEMADD_SIZE_8BIT, &byte, 1, 1000);
+    return byte;
+}
+```
+
+#### 连续写入多个字节
+
+```c
+void EEPROM_WriteBytes(uint8_t inner_addr, uint8_t *data, uint8_t size)
+{
+    HAL_I2C_Mem_Write(&hi2c2, W_ADDR, inner_addr,
+                      I2C_MEMADD_SIZE_8BIT, data, size, 1000);
+    Delay_ms(5);
+}
+```
+
+#### 连续读取多个字节
+
+```c
+void EEPROM_ReadBytes(uint8_t inner_addr, uint8_t *buffer, uint8_t size)
+{
+    HAL_I2C_Mem_Read(&hi2c2, R_ADDR, inner_addr,
+                     I2C_MEMADD_SIZE_8BIT, buffer, size, 1000);
+}
+```
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.5 三种实现方式完整对比
+
+| 对比项 | 软件模拟 I²C | 硬件 I²C（寄存器） | 硬件 I²C（HAL 库） |
+|--------|-------------|-------------------|-------------------|
+| 初始化 | 手动配 GPIO | 手动配 GPIO + CR2 + CCR + TRISE + CR1 | **CubeMX 自动生成** |
+| GPIO 模式 | 通用开漏输出 | 复用开漏输出 | **CubeMX 自动配** |
+| START 信号 | 手动拉高拉低 | `CR1.START = 1; while(!SB);` | **函数内部自动** |
+| STOP 信号 | 手动拉高拉低 | `CR1.STOP = 1;` | **函数内部自动** |
+| 发送字节 | `for(8次){设SDA;翻SCL;}` | `while(!TXE); DR=byte; while(!BTF);` | **函数内部自动** |
+| 接收字节 | `for(8次){翻SCL;读SDA;}` | `while(!RXNE); return DR;` | **函数内部自动** |
+| 等待 ACK | `READ_SDA()` 读电平 | 检测 ADDR/BTF 标志 | **函数内部自动** |
+| 假写真读 | 手动实现两段式 | 手动实现两段式 | **函数内部自动** |
+| 写 EEPROM | 调 I2C_Start/SendByte/Stop 等 | 调 I2C_Start/SendAddr/SendByte/Stop 等 | **一行 HAL_I2C_Mem_Write** |
+| 读 EEPROM | 调 I2C_Start/SendByte/ReceiveByte 等 | 调 I2C_Start/SendAddr/ReceiveByte 等 | **一行 HAL_I2C_Mem_Read** |
+| 代码量 | **最大** | 中等 | **最小** |
+| 可读性 | 低（底层细节多） | 中等 | **高**（参数直观） |
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.6 HAL 库函数命名规律
+
+```
+HAL_I2C_Mem_Write     ← I²C 存储器写入
+HAL_I2C_Mem_Read      ← I²C 存储器读取
+HAL_I2C_Master_...    ← I²C 主模式操作
+HAL_I2C_Slave_...     ← I²C 从模式操作
+HAL_I2C_IsDeviceReady ← 检测设备是否就绪
+```
+
+| 后缀 | 说明 |
+|------|------|
+| 无后缀 | 轮询方式（阻塞） |
+| `_IT` | 中断方式（非阻塞） |
+| `_DMA` | DMA 方式 |
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)
+
+### 21.7 I²C 相关 HAL 库函数汇总
+
+| 函数 | 功能 | 阻塞 |
+|------|------|:----:|
+| `HAL_I2C_Master_Transmit()` | 主设备发送原始数据 | 是 |
+| `HAL_I2C_Master_Receive()` | 主设备接收原始数据 | 是 |
+| `HAL_I2C_Mem_Write()` | 写入存储器（自动处理地址） | 是 |
+| `HAL_I2C_Mem_Read()` | 读取存储器（自动假写真读） | 是 |
+| `HAL_I2C_IsDeviceReady()` | 检测设备是否在线 | 是 |
+
+> 本实验使用 `HAL_I2C_Mem_Write` 和 `HAL_I2C_Mem_Read`，它们内部自动完成了假写真读等复杂操作。
+
+📄 [原文14: I2C HAL库实现AT24C02](../raw/嵌入式开发/I2C通信协议/14_I2C_HAL库实现AT24C02.md)

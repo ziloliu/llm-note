@@ -4,6 +4,11 @@
 > - [x] 09_DMA原理与存储器到存储器传输
 > - [x] 10_DMA原理与架构
 > - [x] 11_DMA存储器到存储器传输寄存器配置
+> - [x] 12_DMA存储器到存储器传输寄存器实现
+> - [x] 13_DMA存储器到存储器传输HAL库实现
+> - [x] 14_DMA内存到串口传输HAL库实现
+> - [x] 15_DMA内存到串口传输寄存器实现
+> - [x] 16_DMA完整回顾与地址交换
 >
 > **更新时间**：2026-06-19
 
@@ -268,6 +273,155 @@ DMA 传输时需要等待（外设写入周期、内存读写周期）
 ```
 
 📄 [原文11: DMA存储器到存储器传输寄存器配置](../raw/DMA/11_DMA存储器到存储器传输寄存器配置.md)
+
+---
+
+## 八、存储器到存储器传输实现
+
+### 8.1 寄存器方式实现
+
+**配置要点**：
+```c
+// 开启时钟
+RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+
+// 配置 CCR
+DMA1_Channel1->CCR = 0;                    // 先清零
+DMA1_Channel1->CCR |= DMA_CCR_MEM2MEM;    // 存储器到存储器
+DMA1_Channel1->CCR |= DMA_CCR_DIR;        // 从存储器读
+DMA1_Channel1->CCR |= DMA_CCR_PINC;       // 外设地址自增
+DMA1_Channel1->CCR |= DMA_CCR_MINC;       // 存储器地址自增
+DMA1_Channel1->CCR |= DMA_CCR_TCIE;       // 传输完成中断
+
+// 配置数据数量
+DMA1_Channel1->CNDTR = 4;
+
+// 配置地址
+DMA1_Channel1->CPAR = (uint32_t)src;       // 源地址（ROM）
+DMA1_Channel1->CMAR = (uint32_t)dst;       // 目标地址（RAM）
+
+// 开启通道
+DMA1_Channel1->CCR |= DMA_CCR_EN;
+
+// 等待完成
+while (!(DMA1->ISR & DMA_ISR_TCIF1));
+DMA1->IFCR |= DMA_IFCR_CTCIF1;
+```
+
+📄 [原文12: DMA存储器到存储器传输寄存器实现](../raw/DMA/12_DMA存储器到存储器传输寄存器实现.md)
+
+### 8.2 HAL 库实现
+
+**CubeMX 配置**：
+- System Core → DMA → Add → Memory To Memory
+- DMA Controller: DMA1
+- Channel: Channel 1
+- Direction: Memory To Memory
+- Mode: Normal
+
+**代码实现**：
+```c
+// 启动传输
+HAL_DMA_Start(&hdma_memtomem_dma1_channel1, 
+              (uint32_t)src, 
+              (uint32_t)dst, 
+              4);
+
+// 等待完成（阻塞方式）
+HAL_DMA_PollForTransfer(&hdma_memtomem_dma1_channel1, 
+                        HAL_DMA_FULL_TRANSFER, 
+                        HAL_MAX_DELAY);
+```
+
+📄 [原文13: DMA存储器到存储器传输HAL库实现](../raw/DMA/13_DMA存储器到存储器传输HAL库实现.md)
+
+---
+
+## 九、内存到串口传输
+
+### 9.1 与存储器到存储器模式的区别
+
+| 对比项 | 存储器到存储器 | 内存到串口 |
+|--------|:-------------:|:---------:|
+| MEM2MEM | **1**（开启） | **0**（不开启） |
+| DIR | 0（从外设读） | **1**（从存储器读，发往外设） |
+| CPAR | ROM 地址 | **USART1->DR 地址** |
+| CMAR | RAM 地址 | **数组地址** |
+| PINC | 1（地址自增） | **0**（串口地址不自增） |
+| 通道 | 任意 | **硬件固定**（通道 4） |
+| 额外配置 | 无 | **USART1->CR3.DMAT = 1** |
+
+### 9.2 串口 DMA 使能
+
+**额外配置**：外设端需要开启 DMA 请求
+```c
+// USART1 的 CR3 寄存器
+USART1->CR3 |= USART_CR3_DMAT;  // 使能 DMA 发送
+```
+
+### 9.3 寄存器方式实现
+
+```c
+// 开启时钟
+RCC->AHBENR |= RCC_AHBENR_DMA1EN;
+RCC->APB2ENR |= RCC_APB2ENR_USART1EN;
+
+// 配置 DMA
+DMA1_Channel4->CCR = 0;
+DMA1_Channel4->CCR |= DMA_CCR_DIR;        // 从存储器读
+DMA1_Channel4->CCR |= DMA_CCR_MINC;       // 存储器地址自增
+DMA1_Channel4->CCR |= DMA_CCR_TCIE;       // 传输完成中断
+
+// 配置地址
+DMA1_Channel4->CPAR = (uint32_t)&USART1->DR;  // 串口数据寄存器
+DMA1_Channel4->CMAR = (uint32_t)txBuffer;     // 发送缓冲区
+DMA1_Channel4->CNDTR = 4;                      // 4个字节
+
+// 使能串口 DMA 发送
+USART1->CR3 |= USART_CR3_DMAT;
+
+// 开启 DMA 通道
+DMA1_Channel4->CCR |= DMA_CCR_EN;
+```
+
+📄 [原文14: DMA内存到串口传输HAL库实现](../raw/DMA/14_DMA内存到串口传输HAL库实现.md)
+📄 [原文15: DMA内存到串口传输寄存器实现](../raw/DMA/15_DMA内存到串口传输寄存器实现.md)
+
+---
+
+## 十、DMA 与中断的系统定位
+
+### 10.1 两者对比
+
+| 对比项 | 中断 | DMA |
+|--------|------|-----|
+| **角色** | 大宰相（NVIC） | 小秘书（DMA 控制器） |
+| **功能** | 打断主程序，处理突发事件 | 外设与存储器之间高速数据搬运 |
+| **CPU 参与** | 必须参与（执行中断服务程序） | **不参与**（硬件自动完成） |
+| **处理内容** | 任意逻辑（软件实现） | 数据传输（硬件实现） |
+
+### 10.2 系统架构中的位置
+
+```
+              ┌──────────────────────────────────┐
+              │          AHB 系统高速总线          │
+              │                                  │
+  ┌───────┐   │  ┌────────┐   ┌───────────────┐  │
+  │  CPU  │───┤  │  NVIC  │   │ DMA 控制器     │  │
+  │ (CM3) │   │  │(大宰相) │   │ (小秘书)       │  │
+  └───────┘   │  └────────┘   └───────┬───────┘  │
+              │                       │          │
+              │  ┌────────────────────┼────────┐ │
+              │  │  总线矩阵           │        │ │
+              └──┴────────────────────┴────────┴─┘
+                   │         │         │
+                ┌──┴──┐  ┌──┴──┐  ┌───┴───┐
+                │ SRAM│  │Flash│  │ 外设   │
+                │(RAM)│  │(ROM)│  │(串口等)│
+                └─────┘  └─────┘  └───────┘
+```
+
+📄 [原文16: DMA完整回顾与地址交换](../raw/DMA/16_DMA完整回顾与地址交换.md)
 
 ---
 

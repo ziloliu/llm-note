@@ -68,8 +68,10 @@ knowledge-base/
 
 每次完成重要操作后，AI 自动执行：
 ```bash
-git add . && git commit -m "描述" && git push
+git pull --no-rebase origin main && git add . && git commit -m "描述" && git push
 ```
+
+**⚠️ 必须先 pull 再 push**：推送前必须先拉取远程更新，避免冲突和覆盖他人修改。
 
 **重要操作定义**：
 - 入库新笔记（RAW_IN）

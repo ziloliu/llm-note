@@ -5,6 +5,8 @@
 > - [x] 02_STM32 ADC模块介绍
 > - [x] 03_ADC工作原理逐次逼近型
 > - [x] 04_STM32 ADC功能框图与工作原理
+> - [x] 05_ADC独立模式单通道采集寄存器实现
+> - [x] 06_ADC独立模式单通道采集HAL库实现
 >
 > **更新时间**：2026-06-19
 
@@ -371,3 +373,194 @@ STM32F103（12 位 ADC，VREF = 3.3V）：
 📄 [原文01: ADC基本原理与概念](../raw/嵌入式开发/ADC/01_ADC基本原理与概念.md)
 📄 [原文03: ADC工作原理逐次逼近型](../raw/嵌入式开发/ADC/03_ADC工作原理逐次逼近型.md)
 📄 [原文04: STM32 ADC功能框图与工作原理](../raw/嵌入式开发/ADC/04_STM32 ADC功能框图与工作原理.md)
+
+---
+
+## 十三、独立模式单通道采集实现
+
+### 13.1 实验概述
+
+| 项目 | 说明 |
+|------|------|
+| ADC 模块 | ADC1 |
+| 通道 | 通道 10（ADC123_IN10） |
+| 输入引脚 | PC0 |
+| 工作模式 | 独立模式 + 单通道 + 连续转换 |
+| 触发方式 | 软件触发（SWSTART） |
+| 数据对齐 | 右对齐（默认） |
+
+### 13.2 寄存器方式配置流程
+
+```
+① 开启 ADC1 时钟
+   RCC->APB2ENR |= RCC_APB2ENR_ADC1EN;
+
+② ADC 时钟分频（72MHz / 6 = 12MHz）
+   RCC->CFGR ADCPRE = 10（6 分频）
+
+③ GPIO 配置（PC0 模拟输入）
+   GPIOC->CRL &= ~(0xF << 0);  // 4位全零 = 模拟输入
+
+④ CR1：禁用扫描模式
+   ADC1->CR1 &= ~ADC_CR1_SCAN;
+
+⑤ CR2：开启连续转换、右对齐
+   ADC1->CR2 |= ADC_CR2_CONT;       // CONT = 1
+   ADC1->CR2 &= ~ADC_CR2_ALIGN;     // ALIGN = 0
+
+⑥ SMPR1：配置通道 10 采样时间
+   ADC1->SMPR1 |= (0x1 << 0);      // SMP10 = 001（7.5 周期）
+
+⑦ SQR1：配置序列长度 L = 0（1 个通道）
+
+⑧ SQR3：配置 SQ1 = 通道 10
+   ADC1->SQR3 |= (10 << 0);
+
+⑨ CR2：配置软件触发
+   ADC1->CR2 |= ADC_CR2_EXTTRIG;    // EXTTRIG = 1
+   ADC1->CR2 |= ADC_CR2_EXTSEL;     // EXTSEL[2:0] = 111
+```
+
+### 13.3 启动转换
+
+```c
+void ADC1_StartConvert(void)
+{
+    // ① 上电唤醒（第一次写 ADON = 1）
+    ADC1->CR2 |= ADC_CR2_ADON;
+
+    // ② 执行校准
+    ADC1->CR2 |= ADC_CR2_CAL;
+
+    // ③ 等待校准完成（硬件自动清零 CAL）
+    while (ADC1->CR2 & ADC_CR2_CAL);
+
+    // ④ 软件触发启动转换
+    ADC1->CR2 |= ADC_CR2_SWSTART;
+}
+```
+
+### 13.4 读取转换结果
+
+```c
+double ADC1_ReadV(void)
+{
+    // 等待转换完成（EOC = 1）
+    while (!(ADC1->SR & ADC_SR_EOC));
+
+    // 读取数据寄存器（读 DR 自动清除 EOC）
+    return ADC1->DR * 3.3 / 4095;   // 转换为电压
+}
+```
+
+### 13.5 SWSTART vs EOC 重要区分
+
+```
+SWSTART 位：
+  写 1 → 开始转换 → 硬件立即清除
+  SWSTART = 0 只表示"已经开始"，不表示"已经完成"
+
+EOC 位：
+  转换完成 → 硬件置 1
+  读 DR → 硬件清除
+  EOC = 1 才表示转换完成
+
+时序：
+  写 SWSTART = 1
+    ↓ （硬件立即清零 SWSTART）
+    ↓ （进行 12 位逐次逼近转换）
+    ↓ （转换完成）
+  EOC = 1
+    ↓ （读取 DR）
+  EOC = 0
+```
+
+📄 [原文05: ADC独立模式单通道采集寄存器实现](../raw/嵌入式开发/ADC/05_ADC独立模式单通道采集寄存器实现.md)
+
+### 13.6 HAL 库方式实现
+
+**CubeMX 配置**：
+- Mode: Independent mode
+- Data Alignment: Right alignment
+- Scan Conversion Mode: Disable
+- Continuous Conversion Mode: Enable
+- Number Of Conversion: 1
+- External Trigger: Software trigger
+- Rank 1: Channel 10
+- Sampling Time: 7.5 Cycles
+
+**⚠️ 关键：CubeMX 不会自动配置 ADC 分频**，需手动在 Clock Configuration 中设置 ADC Prescaler = /6
+
+**关键函数**：
+
+| 函数 | 功能 |
+|------|------|
+| `HAL_ADC_Start()` | 启动 ADC 转换（轮询） |
+| `HAL_ADCEx_Calibration_Start()` | **ADC 校准**（必须） |
+| `HAL_ADC_GetValue()` | 获取转换结果（读 DR） |
+| `HAL_ADC_Start_IT()` | 启动 ADC 转换（中断） |
+| `HAL_ADC_Start_DMA()` | 启动 ADC 转换（DMA） |
+
+**主函数示例**：
+```c
+// ⚠️ 校准（必须！否则最大值只能到 3.25V）
+HAL_ADCEx_Calibration_Start(&hadc1);
+
+// 启动 ADC 转换
+HAL_ADC_Start(&hadc1);
+
+while (1)
+{
+    double v = HAL_ADC_GetValue(&hadc1) * 3.3 / 4095;
+    printf("V = %.2f V\n", v);
+    HAL_Delay(1000);
+}
+```
+
+### 13.7 校准的重要性
+
+```
+问题：未校准时最大值只能到 3.25V，到不了 3.3V
+
+原因：ADC 转换器存在固有偏差（类似天平没调零）
+
+校准过程：
+  ① HAL_ADCEx_Calibration_Start(&hadc1)
+  ② 硬件自动执行校准（类似调零）
+  ③ 校准完成，偏差被消除
+
+正确顺序：
+  ① HAL_ADCEx_Calibration_Start()  ← 先校准
+  ② HAL_ADC_Start()                ← 再启动
+```
+
+### 13.8 寄存器 vs HAL 库对比
+
+| 对比项 | 寄存器方式 | HAL 库方式 |
+|--------|-----------|-----------|
+| 时钟配置 | 手动 RCC->CFGR | CubeMX 图形化 |
+| GPIO 配置 | 手动 CRL/CNF | CubeMX 自动生成 |
+| 校准 | 手动 CAL 位 + 等待 | `HAL_ADCEx_Calibration_Start()` |
+| 启动 | 手动 SWSTART 位 | `HAL_ADC_Start()` |
+| 读取 | 手动读 SR + DR | `HAL_ADC_GetValue()` |
+| 代码量 | 较多 | **极少** |
+
+### 13.9 GPIO 时钟可省略的原因
+
+```
+GPIO 模拟输入模式下的内部电路：
+
+  引脚 ────────────────────→ ADC 输入
+          （一根导线直连）
+
+  不需要的电路：
+    ❌ 施密特触发器（数字输入用）
+    ❌ 上拉/下拉电阻
+    ❌ 输出驱动器
+
+  这些电路都关闭 → 不需要时钟驱动
+  → GPIO 时钟可以不开启
+  → 但开启也不影响功能
+```
+
+📄 [原文06: ADC独立模式单通道采集HAL库实现](../raw/嵌入式开发/ADC/06_ADC独立模式单通道采集HAL库实现.md)
